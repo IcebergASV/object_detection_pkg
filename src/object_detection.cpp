@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <ros/console.h>
 
 
 class Image_Finder{
@@ -42,12 +43,12 @@ private:
         image_width = msg->width;
 
         //Access image encoding
-        std::string encoding = msg->encoding;
+        encoding = msg->encoding;
 
         //Save image message
         img_msg_ = *msg;
 
-        // ROS_INFO("Recived an image with width="<< image_width << "and height" << image_height);
+        ROS_INFO("Received an image with width=%u and height=%u", image_width, image_height);
 
     }
 
