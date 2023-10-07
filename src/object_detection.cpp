@@ -9,7 +9,6 @@ public:
     Image_Finder(): nh_("") {
         //Subsribe to camera topic publishing data
         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
-
     }
 
     //Function to continue the life of the node
@@ -33,7 +32,6 @@ private:
     uint32_t image_width;
     std::string encoding;
 
-
     void imageCallback(const sensor_msgs::Image::ConstPtr& msg){
         //Access the image data from the message
         image_data_matrix = msg->data;
@@ -48,16 +46,16 @@ private:
         //Save image message
         img_msg_ = *msg;
 
-        ROS_INFO("Received an image with width=%u and height=%u", image_width, image_height);
-
+        // Use ROS_DEBUG_STREAM for debugging
+        ROS_DEBUG_STREAM("Received an image with width=" << image_width << " and height=" << image_height);
     }
-
 };
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "object_detection");
-
+    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
+        ros::console::notifyLoggerLevelsChanged();
 
     Image_Finder image_finder;
     image_finder.spin();
