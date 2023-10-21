@@ -18,7 +18,7 @@ public:
         ros::Rate rate(2); // 2Hz
         while (ros::ok()) {
             ros::spinOnce();
-            publishImageInfo(); // Publish image information
+            detectAndPublishObjects()
             rate.sleep();
         }
     }
@@ -39,14 +39,9 @@ private:
     void imageCallback(const sensor_msgs::Image::ConstPtr& msg){
         //Access the image data from the message
         image_data_matrix = msg->data;
-
         //Acces image dimensions
         image_height = msg->height;
         image_width = msg->width;
-
-        //Access image encoding
-        encoding = msg->encoding;
-
         //Save image message
         img_msg_ = *msg;
 
@@ -57,17 +52,38 @@ private:
 
     }
 
-    void publishImageInfo() {
-        // Create a Vector3 message to publish image info
-        geometry_msgs::Vector3 msg;
-        msg.x = static_cast<double>(image_width);
-        msg.y = static_cast<double>(image_height);
-        // Assuming you want to publish encoding information in the z field
-        // Modify this part if you want to publish the image data
-        msg.z = 0.0; // You can replace 0.0 with encoding information
+    void detectAndPublishObjects(){
+        std::string temp_img_path = "temp_image.jpg";
+        saveImageToFile(temp_img_path);
 
-        // Publish the message
-        publisher.publish(msg);
+        std::string command "python3 TODO add path to objectdetcitonyolov5.py";
+        std::string result = executeCommand(command);
+
+        //Process/Pars the result from the python file depending on how the information is received
+
+        //Map it to the custom message
+    }
+
+    void saveImageToFile(const std::string& image_path){
+        std::ofstream image_file(image_path, std::ios::out | std::ios::binary);
+        image_file.write(reinterpret_cast<const char*>(image_data_matrix.data()), image_data_matrix_.size());
+        image_file.close();
+    }
+
+    std::string executeCommand(const std::string& command){
+        FILE* pipe = popen(command.c_star(),"r");
+        if (!pipe){
+            return "Error";
+        }
+        char buffer[128];
+        std::string result = "";
+        while(!feof(pipe)){
+            if (fgeets(buffer,128,pipe)!= NULL){
+                result += buffer;
+            }
+        }
+        pclose(pipe);
+        return result:
     }
 };
 
