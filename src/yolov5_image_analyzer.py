@@ -7,35 +7,29 @@ import time
 import argparse
 import os
 import torch
+import json
 from yolov5.utils.torch_utils import select_device
 from yolov5.models.experimental import attempt_load
 from yolov5.utils.general import non_max_suppression, scale_segments, xyxy2xywh
 from yolov5.utils.augmentations import letterbox
 
+# Define a structure for detected objects
+def create_detected_object(class_name, confidence, x_min, x_max, y_min, y_max):
+    return {
+        "class_name": class_name,
+        "confidence": confidence,
+        "x_min": x_min,
+        "x_max": x_max,
+        "y_min": y_min,
+        "y_max": y_max,
+    }
 
-#Function that plots one box in a detected object
-def plot_one_box(xyxy, img, color=None, label=None, line_thickness=None):
-    # Plots one bounding box on image img
-    tl = line_thickness or round(0.002 * max(img.shape[0:2])) + 1  # line thickness
-    color = color or [random.randint(0, 255) for _ in range(3)]
-    c1, c2 = (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3]))
-    cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
-    if label:
-        tf = max(tl - 1, 1)  # font thickness
-        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
-        c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
-        cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
-        cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
-
-
-# Function to detect objects in an image
-def detect_objects(image_path, weights_path, output_image_path):
+# Function to detect objects in an image and return them as an array
+def detect_objects(image_path, weights_path):
     device = select_device('')
     model = attempt_load(weights_path, device=device)
 
-    # Define random colors for each class
-    random.seed(0)
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(model.names))]
+    detected_objects = []  # Initialize an empty list to hold detected objects
 
     # Read the image
     img0 = cv2.imread(image_path)
@@ -55,22 +49,30 @@ def detect_objects(image_path, weights_path, output_image_path):
         if det is not None and len(det):
             det[:, :4] = scale_segments(img.shape[2:], det[:, :4], img0.shape).round()
             for *xyxy, conf, cls in reversed(det):
-                label = f'{model.names[int(cls)]} {conf:.2f}'
-                plot_one_box(xyxy, img0, label=label, color=colors[int(cls)], line_thickness=3)
+                class_name = model.names[int(cls)]
+                confidence = conf.item()
+                x_min, y_min, x_max, y_max = map(int, xyxy)
+                detected_objects.append(create_detected_object(class_name, confidence, x_min, x_max, y_min, y_max))
 
-    # Save the output image with detected objects
-    cv2.imwrite(output_image_path, img0)
+    return detected_objects
 
 def main():
     # Specify the input image path and model weights path
-    input_image_path = '/home/david/Documents/temp_image.jpg'
+    input_image_path = '/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png'
     weights_path = '/home/david/Documents/ObjectDetection/buoy_detector_yolov_5_pytorch.pt'
-    output_image_path = '/home/david/Documents/output_image.jpg'
+    output_json_path = '/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/detected_objects.json'
 
-    # Detect objects in the input image
-    detect_objects(input_image_path, weights_path, output_image_path)
+    # Detect objects in the input image and get the detected objects as an array
+    detected_objects = detect_objects(input_image_path, weights_path)
 
-    # Clean up
+    # Serialize the detected_objects list to a JSON string
+    detected_objects_json = json.dumps(detected_objects)
 
+    # Save the JSON data to a file
+    with open(output_json_path, 'w') as json_file:
+        json_file.write(detected_objects_json)
+
+    # Print the file path to the standard output
+    print(output_json_path)
 if __name__ == '__main__':
     main()
