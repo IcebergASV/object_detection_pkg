@@ -10,7 +10,16 @@ project(object_detection_pkg)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
+  rospy
+  std_msgs
+  cv_bridge
+  image_transport
 )
+
+find_package(OpenCV REQUIRED)
+catkin_package()
+
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -115,14 +124,16 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/object_detection_pkg.cpp
-# )
+# Declare a C++ library
+add_library(DetectedObjectLib
+  lib/DetectedObject.cpp
+  include/DetectedObject.h
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -135,6 +146,11 @@ include_directories(
 add_executable(object_detection src/object_detection.cpp)
 target_link_libraries(object_detection ${catkin_LIBRARIES})
 add_dependencies(object_detection ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+add_executable(image_visualizer src/image_visualizer.cpp)
+target_link_libraries(image_visualizer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(image_visualizer ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
 
 
 ## Rename C++ executable without prefix
@@ -171,6 +187,9 @@ add_dependencies(object_detection ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_E
 # install(TARGETS ${PROJECT_NAME}_node
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+install(TARGETS image_visualizer
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
