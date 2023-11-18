@@ -1,97 +1,201 @@
+// #include <ros/ros.h>
+// #include <sensor_msgs/Image.h>
+// #include <ros/console.h>
+// #include <geometry_msgs/Vector3.h>
+// #include <fstream>
+// #include <cstdlib>
+// #include <std_msgs/String.h>
+// #include "DetectedObject.h"
+// #include <image_transport/image_transport.h>
+// #include <cv_bridge/cv_bridge.h>
+// #include <sensor_msgs/image_encodings.h>
+// #include <opencv2/highgui/highgui.hpp>
+
+// class Image_Finder {
+// public:
+    
+//     Image_Finder() : nh_("") {
+//         // Subscribe to camera topic publishing data
+//         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
+//         publisher = nh_.advertise<geometry_msgs::Vector3>("/raw_image_copy", 1);
+//     }
+
+//     // Function to continue the life of the node
+//     void spin() {
+//         ros::Rate rate(2); // 2Hz
+//         while (ros::ok()) {
+//             ros::spinOnce();
+//             rate.sleep();
+//         }
+//     }
+
+// private:
+//     ros::NodeHandle nh_;
+//     ros::Subscriber sub_img_;
+//     ros::Publisher publisher;
+
+//     void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
+//         if (msg->data.empty()) {
+//             ROS_WARN("Received image message with empty data. Not saving the image.");
+//             return; // Exit early if the image data is empty
+//         }
+
+//         // Convert the sensor_msgs/Image to an OpenCV image
+//         cv_bridge::CvImagePtr cv_ptr;
+//         try {
+//             cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+//         } catch (cv_bridge::Exception& e) {
+//             ROS_ERROR("cv_bridge exception: %s", e.what());
+//             return;
+//         }
+
+//         // Save the OpenCV image to a file
+//         std::string image_filename = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png";  // Replace with your desired file path
+//         if (cv::imwrite(image_filename, cv_ptr->image)) {
+//             ROS_INFO("Saved image to %s", image_filename.c_str());
+//         } else {
+//             ROS_ERROR("Failed to save image to %s", image_filename.c_str());
+//         }
+
+//         // You can also publish image info if needed
+//         publishImageInfo(msg);
+//     }
+
+    
+
+//     void publishImageInfo(const sensor_msgs::Image::ConstPtr& msg) {
+//         // Create a Vector3 message to publish image info
+//         geometry_msgs::Vector3 image_info_msg;
+//         image_info_msg.x = static_cast<double>(msg->width);
+//         image_info_msg.y = static_cast<double>(msg->height);
+//         // Assuming you want to publish encoding information in the z field
+//         // Modify this part if you want to publish other information
+//         image_info_msg.z = 0.0; // You can replace 0.0 with encoding information
+
+//         // Publish the message
+//         publisher.publish(image_info_msg);
+//     }
+// };
+
+// int main(int argc, char** argv) {
+//     ros::init(argc, argv, "object_detection");
+//     if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug)) {
+//         ros::console::notifyLoggerLevelsChanged();
+//     }
+
+//     Image_Finder image_finder;
+//     image_finder.spin();
+
+//     return 0;
+// }
+
+
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <ros/console.h>
 #include <geometry_msgs/Vector3.h>
+#include <fstream>
+#include <cstdlib>
+#include <std_msgs/String.h>
+#include "DetectedObject.h"
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <sstream>
+#include <iostream>
+#include <cstdio>
+// #include <nlohmann/json.hpp>
 
+// using json = nlohmann::json; // Define an alias for nlohmann::json
 
-class Image_Finder{
+class Image_Finder {
 public:
     
-    Image_Finder(): nh_("") {
-        //Subsribe to camera topic publishing data
+    Image_Finder() : nh_("") {
+        // Subscribe to camera topic publishing data
         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
-        publisher = nh_.advertise<geometry_msgs::Vector3>("/raw_image_copy", 1);;
+        publisher = nh_.advertise<geometry_msgs::Vector3>("/raw_image_copy", 1);
     }
 
-    //Function to continue the life of the node
-    void spin(){
-        ros::Rate rate(2); // 2Hz
+    // Function to continue the life of the node
+    void spin() {
+        ros::Rate rate(100); // 2Hz
         while (ros::ok()) {
             ros::spinOnce();
-            detectAndPublishObjects()
             rate.sleep();
         }
     }
-
 
 private:
     ros::NodeHandle nh_;
     ros::Subscriber sub_img_;
     ros::Publisher publisher;
 
-    sensor_msgs::Image img_msg_;
-
-    std::vector<uint8_t> image_data_matrix;
-    uint32_t image_height;
-    uint32_t image_width;
-    std::string encoding;
-
-    void imageCallback(const sensor_msgs::Image::ConstPtr& msg){
-        //Access the image data from the message
-        image_data_matrix = msg->data;
-        //Acces image dimensions
-        image_height = msg->height;
-        image_width = msg->width;
-        //Save image message
-        img_msg_ = *msg;
-
-        // // Use ROS_DEBUG_STREAM for debugging
-        // ROS_DEBUG_STREAM("Received an image with width=" << image_width << " and height=" << image_height);
-
-        geometry_msgs::Vector3 prop_coords_msg;
-
-    }
-
-    void detectAndPublishObjects(){
-        std::string temp_img_path = "temp_image.jpg";
-        saveImageToFile(temp_img_path);
-
-        std::string command "python3 TODO add path to objectdetcitonyolov5.py";
-        std::string result = executeCommand(command);
-
-        //Process/Pars the result from the python file depending on how the information is received
-
-        //Map it to the custom message
-    }
-
-    void saveImageToFile(const std::string& image_path){
-        std::ofstream image_file(image_path, std::ios::out | std::ios::binary);
-        image_file.write(reinterpret_cast<const char*>(image_data_matrix.data()), image_data_matrix_.size());
-        image_file.close();
-    }
-
-    std::string executeCommand(const std::string& command){
-        FILE* pipe = popen(command.c_star(),"r");
-        if (!pipe){
-            return "Error";
+    void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
+        if (msg->data.empty()) {
+            ROS_WARN("Received image message with empty data. Not saving the image.");
+            return; // Exit early if the image data is empty
         }
-        char buffer[128];
-        std::string result = "";
-        while(!feof(pipe)){
-            if (fgeets(buffer,128,pipe)!= NULL){
-                result += buffer;
+
+        // Convert the sensor_msgs/Image to an OpenCV image
+        cv_bridge::CvImagePtr cv_ptr;
+        try {
+            cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+        } catch (cv_bridge::Exception& e) {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
+
+        // Save the OpenCV image to a file
+        std::string image_filename = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png";  // Replace with your desired file path
+        if (cv::imwrite(image_filename, cv_ptr->image)) {
+            ROS_INFO("Saved image to %s", image_filename.c_str());
+
+            // Run the Python script and capture its output
+            std::string python_command = "python3 /home/david/Documents/catkin_ws/src/object_detection_pkg/src/yolov5_image_analyzer.py " + image_filename;
+            FILE* pipe = popen(python_command.c_str(), "r");
+            if (!pipe) {
+                ROS_ERROR("Failed to execute the Python script.");
+                return;
             }
+
+            char buffer[128];
+            std::string script_output = "";
+            while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+                script_output += buffer;
+            }
+            pclose(pipe);
+
+            // TODO Parse the JSON output here (script_output variable contains the JSON data)
+            //parseAndProcessJSONOutput(script_output);
+        } else {
+            ROS_ERROR("Failed to save image to %s", image_filename.c_str());
         }
-        pclose(pipe);
-        return result:
+
+        // You can also publish image info if needed
+        publishImageInfo(msg);
+    }
+
+    void publishImageInfo(const sensor_msgs::Image::ConstPtr& msg) {
+        // Create a Vector3 message to publish image info
+        geometry_msgs::Vector3 image_info_msg;
+        image_info_msg.x = static_cast<double>(msg->width);
+        image_info_msg.y = static_cast<double>(msg->height);
+        // Assuming you want to publish encoding information in the z field
+        // Modify this part if you want to publish other information
+        image_info_msg.z = 0.0; // You can replace 0.0 with encoding information
+
+        // Publish the message
+        publisher.publish(image_info_msg);
     }
 };
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     ros::init(argc, argv, "object_detection");
-    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
+    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug)) {
         ros::console::notifyLoggerLevelsChanged();
+    }
 
     Image_Finder image_finder;
     image_finder.spin();
