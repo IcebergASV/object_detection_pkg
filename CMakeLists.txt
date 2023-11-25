@@ -147,11 +147,6 @@ add_executable(object_detection src/object_detection.cpp)
 target_link_libraries(object_detection ${catkin_LIBRARIES})
 add_dependencies(object_detection ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
-add_executable(image_visualizer src/image_visualizer.cpp)
-target_link_libraries(image_visualizer ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-add_dependencies(image_visualizer ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -187,9 +182,8 @@ add_dependencies(image_visualizer ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_E
 # install(TARGETS ${PROJECT_NAME}_node
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
-install(TARGETS image_visualizer
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+
+
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
