@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <object_detection_pkg/ObjDetected.h>
 #include <ros/console.h>
 #include <geometry_msgs/Vector3.h>
 #include <fstream>
@@ -23,7 +24,7 @@ public:
     Image_Finder() : nh_("") {
         // Subscribe to camera topic publishing data
         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
-        publisher = nh_.advertise<geometry_msgs::Vector3>("/raw_image_copy", 1);
+        publisher = nh_.advertise<object_detection_pkg::ObjDetected>("/raw_image_copy", 1);
     }
 
     // Function to continue the life of the node
@@ -86,16 +87,19 @@ private:
     }
 
     void publishImageInfo(const sensor_msgs::Image::ConstPtr& msg) {
-        // Create a Vector3 message to publish image info
-        geometry_msgs::Vector3 image_info_msg;
-        image_info_msg.x = static_cast<double>(msg->width);
-        image_info_msg.y = static_cast<double>(msg->height);
-        // Assuming you want to publish encoding information in the z field
-        // Modify this part if you want to publish other information
-        image_info_msg.z = 0.0; // You can replace 0.0 with encoding information
+        // Create an instance of the custom message
+        object_detection_pkg::ObjDetected custom_message;
 
-        // Publish the message
-        publisher.publish(image_info_msg);
+        // Fill in the custom message fields with hard-coded values
+        custom_message.class_name = "Buoy";
+        custom_message.confidence = 0.48662763833999634;
+        custom_message.x_min = 0;
+        custom_message.x_max = 113;
+        custom_message.y_min = 235;
+        custom_message.y_max = 450;
+
+        // Publish the custom message
+        publisher.publish(custom_message);
     }
 };
 
