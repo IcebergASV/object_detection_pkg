@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <object_detection_pkg/ObjDetected.h>
 #include <ros/console.h>
 #include <geometry_msgs/Vector3.h>
 #include <fstream>
