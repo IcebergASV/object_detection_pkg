@@ -56,33 +56,62 @@ private:
         }
 
         // Save the OpenCV image to a file
-        std::string image_filename = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png";  // Replace with your desired file path
-        if (cv::imwrite(image_filename, cv_ptr->image)) {
-            ROS_INFO("Saved image to %s", image_filename.c_str());
-
-            // Run the Python script and capture its output
-            std::string python_command = "python3 /home/david/Documents/catkin_ws/src/object_detection_pkg/src/yolov5_image_analyzer.py " + image_filename;
-            FILE* pipe = popen(python_command.c_str(), "r");
-            if (!pipe) {
-                ROS_ERROR("Failed to execute the Python script.");
-                return;
-            }
-
-            char buffer[128];
-            std::string script_output = "";
-            while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-                script_output += buffer;
-            }
-            pclose(pipe);
-
-            // TODO Parse the JSON output here (script_output variable contains the JSON data)
-            //parseAndProcessJSONOutput(script_output);
-        } else {
+        std::string image_filename = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png";
+        if (!cv::imwrite(image_filename, cv_ptr->image)) {
             ROS_ERROR("Failed to save image to %s", image_filename.c_str());
+            return;
         }
 
-        // You can also publish image info if needed
+        ROS_INFO("Saved image to %s", image_filename.c_str());
+
+        // Run the Python script and capture its output
+        std::string python_command = "python3 /home/david/Documents/catkin_ws/src/object_detection_pkg/src/yolov5_image_analyzer.py " + image_filename;
+        FILE* pipe = popen(python_command.c_str(), "r");
+        if (!pipe) {
+            ROS_ERROR("Failed to execute the Python script.");
+            return;
+        }
+
+        char buffer[128];
+        std::string script_output = "";
+        while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+            script_output += buffer;
+        }
+        pclose(pipe);
+
+        // Read and parse the JSON file
+        std::ifstream json_file(script_output);
+        std::string json_content((std::istreambuf_iterator<char>(json_file)),
+                                std::istreambuf_iterator<char>());
+        parseAndProcessJSONOutput(json_content);
+
+        // Publish image info if needed
         publishImageInfo(msg);
+    }
+
+    void parseAndProcessJSONOutput(const std::string& json_output) {
+        Json::Value root;
+        Json::Reader reader;
+        bool parsingSuccessful = reader.parse(json_output, root);
+        if (!parsingSuccessful) {
+            ROS_ERROR("Failed to parse JSON: %s", reader.getFormattedErrorMessages().c_str());
+            return;
+        }
+
+        for (const auto& obj : root) {
+            // Extract information from each JSON object
+            std::string class_name = obj["class_name"].asString();
+            double confidence = obj["confidence"].asDouble();
+            int x_min = obj["x_min"].asInt();
+            int x_max = obj["x_max"].asInt();
+            int y_min = obj["y_min"].asInt();
+            int y_max = obj["y_max"].asInt();
+
+            ROS_INFO("Detected: %s with confidence %f at [%d, %d, %d, %d]",
+                    class_name.c_str(), confidence, x_min, x_max, y_min, y_max);
+
+            // Here you can also populate and publish a custom ROS message if required
+        }
     }
 
     void publishImageInfo(const sensor_msgs::Image::ConstPtr& msg) {
