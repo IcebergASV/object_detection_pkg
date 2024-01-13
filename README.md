@@ -13,7 +13,7 @@ sudo apt-get install ros-melodic-cv-bridge-get install ros-melodic
 
 * Intstall OpenCV
 ```
-sudo apt-get install libopencv-devudo apt-get install ros-melodic-cv-bridge-get install ros-melodic
+sudo apt-get install libopencv-dev
 ```
 
 
