@@ -23,7 +23,7 @@ public:
     Image_Finder() : nh_("") {
         // Subscribe to camera topic publishing data
         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
-        publisher = nh_.advertise<object_detection_pkg::ObjDetected>("/raw_image_copy", 1);
+        publisher = nh_.advertise<object_detection_pkg::ObjDetected>("/Detected_Objects", 1);
     }
 
     // Function to continue the life of the node
