@@ -11,6 +11,8 @@
 #include <sstream>
 #include <iostream>
 #include <cstdio>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <jsoncpp/json/json.h>
@@ -46,6 +48,10 @@ private:
             return; // Exit early if the image data is empty
         }
 
+        // Ensure the temp_files directory exists
+        std::string directory = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files";
+        mkdir(directory.c_str(), 0777);
+        
         // Convert the sensor_msgs/Image to an OpenCV image
         cv_bridge::CvImagePtr cv_ptr;
         try {
@@ -56,7 +62,7 @@ private:
         }
 
         // Save the OpenCV image to a file
-        std::string image_filename = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png";
+        std::string image_filename = directory + "/image.png";
         if (!cv::imwrite(image_filename, cv_ptr->image)) {
             ROS_ERROR("Failed to save image to %s", image_filename.c_str());
             return;
