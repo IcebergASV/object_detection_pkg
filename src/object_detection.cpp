@@ -61,72 +61,71 @@ private:
             ROS_ERROR("Failed to save image to %s", image_filename.c_str());
             return;
         }
-
         ROS_INFO("Saved image to %s", image_filename.c_str());
 
-        // Run the Python script and capture its output
+        // Run the Python script
         std::string python_command = "python3 /home/david/Documents/catkin_ws/src/object_detection_pkg/src/yolov5_image_analyzer.py " + image_filename;
-        FILE* pipe = popen(python_command.c_str(), "r");
-        if (!pipe) {
+        int return_code = system(python_command.c_str());
+        if (return_code != 0) {
             ROS_ERROR("Failed to execute the Python script.");
             return;
         }
 
-        char buffer[128];
-        std::string script_output = "";
-        while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-            script_output += buffer;
-        }
-        pclose(pipe);
+        // Wait briefly to ensure the Python script has time to write the JSON file
+        ros::Duration(1.0).sleep(); // Adjust the duration if needed
+
+        // Define the path to the JSON file
+        std::string json_file_path = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/detected_objects.json";
 
         // Read and parse the JSON file
-        std::ifstream json_file(script_output);
+        std::ifstream json_file(json_file_path);
+        if (!json_file.is_open()) {
+            ROS_ERROR("Failed to open JSON file: %s", json_file_path.c_str());
+            return;
+        }
         std::string json_content((std::istreambuf_iterator<char>(json_file)),
                                 std::istreambuf_iterator<char>());
-        parseAndProcessJSONOutput(json_content);
 
-        // Publish image info if needed
-        publishImageInfo(msg);
+        ROS_INFO("JSON file content: %s", json_content.c_str());
+        parseAndProcessJSONOutput(json_content);
     }
 
     void parseAndProcessJSONOutput(const std::string& json_output) {
+        if (json_output.empty() || std::all_of(json_output.begin(), json_output.end(), isspace)) {
+            ROS_WARN("JSON output is empty or only contains whitespaces.");
+            return;
+        }
+
+        ROS_DEBUG("Attempting to parse JSON. Length of string: %lu", json_output.length());
         Json::Value root;
         Json::Reader reader;
         bool parsingSuccessful = reader.parse(json_output, root);
-        if (!parsingSuccessful) {
+        if (!parsingSuccessful || !root.isArray()) {
             ROS_ERROR("Failed to parse JSON: %s", reader.getFormattedErrorMessages().c_str());
             return;
         }
 
+        if (root.empty()) {
+            ROS_INFO("JSON array is empty. No objects detected.");
+            return;
+        }
+
         for (const auto& obj : root) {
-            // Extract information from each JSON object
-            std::string class_name = obj["class_name"].asString();
-            double confidence = obj["confidence"].asDouble();
-            int x_min = obj["x_min"].asInt();
-            int x_max = obj["x_max"].asInt();
-            int y_min = obj["y_min"].asInt();
-            int y_max = obj["y_max"].asInt();
+            object_detection_pkg::ObjDetected custom_message;
+            custom_message.class_name = obj["class_name"].asString();
+            custom_message.confidence = obj["confidence"].asDouble();
+            custom_message.x_min = obj["x_min"].asInt();
+            custom_message.x_max = obj["x_max"].asInt();
+            custom_message.y_min = obj["y_min"].asInt();
+            custom_message.y_max = obj["y_max"].asInt();
 
-            ROS_INFO("Detected: %s with confidence %f at [%d, %d, %d, %d]",
-                    class_name.c_str(), confidence, x_min, x_max, y_min, y_max);
-
-            // Here you can also populate and publish a custom ROS message if required
+            publishCustomMessage(custom_message);
         }
     }
 
-    void publishImageInfo(const sensor_msgs::Image::ConstPtr& msg) {
-        // Create an instance of the custom message
-        object_detection_pkg::ObjDetected custom_message;
-
-        // Fill in the custom message fields with hard-coded values
-        custom_message.class_name = "Buoy";
-        custom_message.confidence = 0.48662763833999634;
-        custom_message.x_min = 0;
-        custom_message.x_max = 113;
-        custom_message.y_min = 235;
-        custom_message.y_max = 450;
-
-        // Publish the custom message
+    void publishCustomMessage(const object_detection_pkg::ObjDetected& custom_message) {
+        ROS_INFO("Publishing detected object: %s with confidence %f", 
+                custom_message.class_name.c_str(), custom_message.confidence);
         publisher.publish(custom_message);
     }
 };
