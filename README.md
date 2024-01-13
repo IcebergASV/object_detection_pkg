@@ -1,5 +1,20 @@
 # object_detection_pkg
 ## Requirements
+* Intstall the JSON Parser Library JsonCpp
+```
+sudo apt-get update
+sudo apt-get install libjsoncpp-dev
+```
+
+* Intstall cv_bridge
+```
+sudo apt-get install ros-melodic-cv-bridge-get install ros-melodic
+```
+
+* Intstall OpenCV
+```
+sudo apt-get install libopencv-dev
+```
 
 
 ## Procedure
