@@ -1,7 +1,8 @@
 # object_detection_pkg
 ## Requirements
 * Intstall the JSON Parser Library JsonCpp
-``` sudo apt-get update
+```
+sudo apt-get update
 sudo apt-get install libjsoncpp-dev
 ```
 
