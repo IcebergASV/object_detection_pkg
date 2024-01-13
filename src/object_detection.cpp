@@ -26,7 +26,7 @@ public:
     Image_Finder() : nh_("") {
         // Subscribe to camera topic publishing data
         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
-        publisher = nh_.advertise<object_detection_pkg::ObjDetected>("/Detected_Objects", 1);
+        publisher = nh_.advertise<object_detection_pkg::DetectedObjsArray>("/Detected_Objects", 1);
     }
 
     // Function to continue the life of the node
@@ -42,6 +42,7 @@ private:
     ros::NodeHandle nh_;
     ros::Subscriber sub_img_;
     ros::Publisher publisher;
+    object_detection_pkg::DetectedObjsArray detected_objs_array;
 
     void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
         if (msg->data.empty()) {
@@ -118,22 +119,18 @@ private:
         }
 
         for (const auto& obj : root) {
-            object_detection_pkg::ObjDetected custom_message;
-            custom_message.class_name = obj["class_name"].asString();
-            custom_message.confidence = obj["confidence"].asDouble();
-            custom_message.x_min = obj["x_min"].asInt();
-            custom_message.x_max = obj["x_max"].asInt();
-            custom_message.y_min = obj["y_min"].asInt();
-            custom_message.y_max = obj["y_max"].asInt();
-
-            publishCustomMessage(custom_message);
+            object_detection_pkg::ObjDetected detected_obj;
+            detected_obj.class_name = obj["class_name"].asString();
+            detected_obj.confidence = obj["confidence"].asDouble();
+            detected_obj.x_min = obj["x_min"].asInt();
+            detected_obj.x_max = obj["x_max"].asInt();
+            detected_obj.y_min = obj["y_min"].asInt();
+            detected_obj.y_max = obj["y_max"].asInt();
+            
+            detected_objs_array.objects.push_back(detected_obj);
         }
-    }
-
-    void publishCustomMessage(const object_detection_pkg::ObjDetected& custom_message) {
-        ROS_INFO("Publishing detected object: %s with confidence %f", 
-                custom_message.class_name.c_str(), custom_message.confidence);
-        publisher.publish(custom_message);
+        publisher.publish(detected_objs_array);
+        detected_objs_array.objects.clear();
     }
 };
 
