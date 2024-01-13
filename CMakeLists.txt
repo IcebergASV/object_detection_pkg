@@ -59,6 +59,7 @@ pkg_check_modules(JSONCPP jsoncpp)
 add_message_files(
   FILES
   ObjDetected.msg
+  DetectedObjsArray.msg
 )
 
 ## Generate services in the 'srv' folder

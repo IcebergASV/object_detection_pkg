@@ -6,6 +6,7 @@
 #include <std_msgs/String.h>
 #include <image_transport/image_transport.h>
 #include <object_detection_pkg/ObjDetected.h>
+#include <object_detection_pkg/DetectedObjsArray.h>
 #include <fstream>
 #include <cstdlib>
 #include <sstream>
