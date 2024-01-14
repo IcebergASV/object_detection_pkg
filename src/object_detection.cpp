@@ -33,7 +33,7 @@ public:
 
     // Function to continue the life of the node
     void spin() {
-        ros::Rate rate(100); // Setting a rate of 100Hz
+        ros::Rate rate(10); // Setting a rate of 100Hz
         while (ros::ok()) {
             ros::spinOnce();
             rate.sleep();
