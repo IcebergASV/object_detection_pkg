@@ -1,1 +1,1 @@
-ObjDetected[] objects
+DetectedObj[] objects

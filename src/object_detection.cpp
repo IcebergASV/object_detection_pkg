@@ -6,7 +6,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <std_msgs/String.h>
 #include <image_transport/image_transport.h>
-#include <object_detection_pkg/ObjDetected.h>
+#include <object_detection_pkg/DetectedObj.h>
 #include <object_detection_pkg/DetectedObjsArray.h>
 #include <fstream>
 #include <cstdlib>
@@ -28,7 +28,7 @@ public:
         // Subscribing to a camera topic to receive image data
         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
         // Setting up a publisher for the detected objects
-        publisher = nh_.advertise<object_detection_pkg::DetectedObjsArray>("/Detected_Objects", 1);
+        publisher = nh_.advertise<object_detection_pkg::DetectedObjsArray>("/detected_objects", 1);
     }
 
     // Function to continue the life of the node
@@ -124,7 +124,7 @@ private:
         }
         // Parsing each object in the JSON array
         for (const auto& obj : root) {
-            object_detection_pkg::ObjDetected detected_obj;
+            object_detection_pkg::DetectedObj detected_obj;
             detected_obj.class_name = obj["class_name"].asString();
             detected_obj.confidence = obj["confidence"].asDouble();
             detected_obj.x_min = obj["x_min"].asInt();
