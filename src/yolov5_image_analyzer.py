@@ -12,6 +12,8 @@ from yolov5.utils.torch_utils import select_device
 from yolov5.models.experimental import attempt_load
 from yolov5.utils.general import non_max_suppression, scale_segments, xyxy2xywh
 from yolov5.utils.augmentations import letterbox
+import rospkg
+
 
 # Define a structure for detected objects
 def create_detected_object(class_name, confidence, x_min, x_max, y_min, y_max):
@@ -57,10 +59,13 @@ def detect_objects(image_path, weights_path):
     return detected_objects
 
 def main():
+    rospack = rospkg.RosPack()
+    package_path = rospack.get_path('object_detection_pkg')
+
     # Specify the input image path and model weights path
-    input_image_path = '/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png'
+    input_image_path = package_path + '/temp_files/image.png'
     weights_path = '/home/david/Documents/ObjectDetection/buoy_detector_yolov_5_pytorch.pt'
-    output_json_path = '/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/detected_objects.json'
+    output_json_path = package_path + '/temp_files/detected_objects.json'
 
     # Detect objects in the input image and get the detected objects as an array
     detected_objects = detect_objects(input_image_path, weights_path)

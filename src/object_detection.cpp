@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <ros/package.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <geometry_msgs/Vector3.h>
@@ -44,6 +45,8 @@ private:
     ros::Subscriber sub_img_;
     ros::Publisher publisher;
     object_detection_pkg::DetectedObjsArray detected_objs_array;
+    std::string package_path = ros::package::getPath("object_detection_pkg");
+
 
     // Callback function for image data from the subscribed topic
     void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
@@ -53,7 +56,7 @@ private:
         }
 
         // Ensuring the directory for saving images exists
-        std::string directory = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files";
+        std::string directory = package_path + "/temp_files";
         mkdir(directory.c_str(), 0777);
         
         // Converting ROS image message to OpenCV image
@@ -66,7 +69,7 @@ private:
         }
 
         // Saving the OpenCV image to a file
-        std::string image_filename = directory + "/image.png";
+        std::string image_filename =  package_path + "/temp_files/image.png";
         if (!cv::imwrite(image_filename, cv_ptr->image)) {
             ROS_ERROR("Failed to save image to %s", image_filename.c_str());
             return;
@@ -74,7 +77,7 @@ private:
         ROS_INFO("Saved image to %s", image_filename.c_str());
 
         // Running a Python script for object detection
-        std::string python_command = "python3 /home/david/Documents/catkin_ws/src/object_detection_pkg/src/yolov5_image_analyzer.py " + image_filename;
+        std::string python_command = "python3 " + package_path + "/src/yolov5_image_analyzer.py " + image_filename;
         int return_code = system(python_command.c_str());
         if (return_code != 0) {
             ROS_ERROR("Failed to execute the Python script.");
@@ -85,7 +88,7 @@ private:
         ros::Duration(1.0).sleep(); // Adjust the duration if needed
 
         // Reading the JSON output from the Python script
-        std::string json_file_path = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/detected_objects.json";
+        std::string json_file_path = package_path + "/temp_files/detected_objects.json";
 
         std::ifstream json_file(json_file_path);
         if (!json_file.is_open()) {
