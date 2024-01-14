@@ -64,7 +64,7 @@ def main():
 
     # Specify the input image path and model weights path
     input_image_path = package_path + '/temp_files/image.png'
-    weights_path = '/home/david/Documents/ObjectDetection/buoy_detector_yolov_5_pytorch.pt'
+    weights_path = package_path + '/weights/buoy_detector_yolov_5_pytorch.pt' 
     output_json_path = package_path + '/temp_files/detected_objects.json'
 
     # Detect objects in the input image and get the detected objects as an array
