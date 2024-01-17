@@ -74,9 +74,6 @@ private:
             return;
         }
 
-        // Waiting for the script to complete and generate JSON output
-        ros::Duration(1.0).sleep(); // Adjust the duration if needed
-
         // Reading the JSON output from the Python script
         std::string json_file_path = package_path + "/temp_files/detected_objects.json";
 
