@@ -1,35 +1,29 @@
 #include <ros/ros.h>
-#include <sensor_msgs/Image.h>
-#include <object_detection_pkg/ObjDetected.h>
 #include <ros/console.h>
-#include <geometry_msgs/Vector3.h>
+#include <ros/package.h>
+#include <object_detection_pkg/DetectedObj.h>
+#include <object_detection_pkg/DetectedObjsArray.h>
 #include <fstream>
-#include <cstdlib>
-#include <std_msgs/String.h>
-#include "DetectedObject.h"
-#include <image_transport/image_transport.h>
+#include <sys/stat.h>
 #include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
 #include <opencv2/highgui/highgui.hpp>
-#include <sstream>
-#include <iostream>
-#include <cstdio>
-// #include <nlohmann/json.hpp>
+#include <jsoncpp/json/json.h>
+#include "DetectedObject.h"
 
-// using json = nlohmann::json; // Define an alias for nlohmann::json
-
+// Image_Finder class definition
 class Image_Finder {
 public:
-    
+    // Constructor
     Image_Finder() : nh_("") {
-        // Subscribe to camera topic publishing data
+        // Subscribing to a camera topic to receive image data
         sub_img_ = nh_.subscribe("/camera/color/image_raw", 1, &Image_Finder::imageCallback, this);
-        publisher = nh_.advertise<object_detection_pkg::ObjDetected>("/raw_image_copy", 1);
+        // Setting up a publisher for the detected objects
+        publisher = nh_.advertise<object_detection_pkg::DetectedObjsArray>("/detected_objects", 1);
     }
 
     // Function to continue the life of the node
     void spin() {
-        ros::Rate rate(100); // 2Hz
+        ros::Rate rate(10); // Setting a rate of 100Hz
         while (ros::ok()) {
             ros::spinOnce();
             rate.sleep();
@@ -40,14 +34,22 @@ private:
     ros::NodeHandle nh_;
     ros::Subscriber sub_img_;
     ros::Publisher publisher;
+    object_detection_pkg::DetectedObjsArray detected_objs_array;
+    std::string package_path = ros::package::getPath("object_detection_pkg");
 
+
+    // Callback function for image data from the subscribed topic
     void imageCallback(const sensor_msgs::Image::ConstPtr& msg) {
         if (msg->data.empty()) {
             ROS_WARN("Received image message with empty data. Not saving the image.");
             return; // Exit early if the image data is empty
         }
 
-        // Convert the sensor_msgs/Image to an OpenCV image
+        // Ensuring the directory for saving images exists
+        std::string directory = package_path + "/temp_files";
+        mkdir(directory.c_str(), 0777);
+        
+        // Converting ROS image message to OpenCV image
         cv_bridge::CvImagePtr cv_ptr;
         try {
             cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
@@ -56,50 +58,72 @@ private:
             return;
         }
 
-        // Save the OpenCV image to a file
-        std::string image_filename = "/home/david/Documents/catkin_ws/src/object_detection_pkg/temp_files/image.png";  // Replace with your desired file path
-        if (cv::imwrite(image_filename, cv_ptr->image)) {
-            ROS_INFO("Saved image to %s", image_filename.c_str());
-
-            // Run the Python script and capture its output
-            std::string python_command = "python3 /home/david/Documents/catkin_ws/src/object_detection_pkg/src/yolov5_image_analyzer.py " + image_filename;
-            FILE* pipe = popen(python_command.c_str(), "r");
-            if (!pipe) {
-                ROS_ERROR("Failed to execute the Python script.");
-                return;
-            }
-
-            char buffer[128];
-            std::string script_output = "";
-            while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-                script_output += buffer;
-            }
-            pclose(pipe);
-
-            // TODO Parse the JSON output here (script_output variable contains the JSON data)
-            //parseAndProcessJSONOutput(script_output);
-        } else {
+        // Saving the OpenCV image to a file
+        std::string image_filename =  package_path + "/temp_files/image.png";
+        if (!cv::imwrite(image_filename, cv_ptr->image)) {
             ROS_ERROR("Failed to save image to %s", image_filename.c_str());
+            return;
+        }
+        ROS_INFO("Saved image to %s", image_filename.c_str());
+
+        // Running a Python script for object detection
+        std::string python_command = "python3 " + package_path + "/src/yolov5_image_analyzer.py " + image_filename;
+        int return_code = system(python_command.c_str());
+        if (return_code != 0) {
+            ROS_ERROR("Failed to execute the Python script.");
+            return;
         }
 
-        // You can also publish image info if needed
-        publishImageInfo(msg);
+        // Reading the JSON output from the Python script
+        std::string json_file_path = package_path + "/temp_files/detected_objects.json";
+
+        std::ifstream json_file(json_file_path);
+        if (!json_file.is_open()) {
+            ROS_ERROR("Failed to open JSON file: %s", json_file_path.c_str());
+            return;
+        }
+        std::string json_content((std::istreambuf_iterator<char>(json_file)),
+                                std::istreambuf_iterator<char>());
+
+        ROS_INFO("JSON file content: %s", json_content.c_str());
+        parseAndProcessJSONOutput(json_content);
     }
 
-    void publishImageInfo(const sensor_msgs::Image::ConstPtr& msg) {
-        // Create an instance of the custom message
-        object_detection_pkg::ObjDetected custom_message;
+    // Function to parse JSON output and process detected objects
+    void parseAndProcessJSONOutput(const std::string& json_output) {
+        if (json_output.empty() || std::all_of(json_output.begin(), json_output.end(), isspace)) {
+            ROS_WARN("JSON output is empty or only contains whitespaces.");
+            return;
+        }
 
-        // Fill in the custom message fields with hard-coded values
-        custom_message.class_name = "Buoy";
-        custom_message.confidence = 0.48662763833999634;
-        custom_message.x_min = 0;
-        custom_message.x_max = 113;
-        custom_message.y_min = 235;
-        custom_message.y_max = 450;
+        ROS_DEBUG("Attempting to parse JSON. Length of string: %lu", json_output.length());
+        Json::Value root;
+        Json::Reader reader;
+        bool parsingSuccessful = reader.parse(json_output, root);
+        if (!parsingSuccessful || !root.isArray()) {
+            ROS_ERROR("Failed to parse JSON: %s", reader.getFormattedErrorMessages().c_str());
+            return;
+        }
 
-        // Publish the custom message
-        publisher.publish(custom_message);
+        if (root.empty()) {
+            ROS_INFO("JSON array is empty. No objects detected.");
+            return;
+        }
+        // Parsing each object in the JSON array
+        for (const auto& obj : root) {
+            object_detection_pkg::DetectedObj detected_obj;
+            detected_obj.class_name = obj["class_name"].asString();
+            detected_obj.confidence = obj["confidence"].asDouble();
+            detected_obj.x_min = obj["x_min"].asInt();
+            detected_obj.x_max = obj["x_max"].asInt();
+            detected_obj.y_min = obj["y_min"].asInt();
+            detected_obj.y_max = obj["y_max"].asInt();
+            
+            detected_objs_array.objects.push_back(detected_obj);
+        }
+        // Publishing the array of detected objects and clearing the array for the next callback
+        publisher.publish(detected_objs_array);
+        detected_objs_array.objects.clear();
     }
 };
 
